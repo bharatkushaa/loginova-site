@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LogiNova | Login and Bookings</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--road:#1d2124;--sign:#f5b700;--paper:#f6f7f8;--line:#d9dde1;--mute:#5b646b}
+*{box-sizing:border-box;margin:0}
+body{font-family:Hind,system-ui,sans-serif;background:var(--paper);color:var(--road);line-height:1.5}
+h1,h2,h3{font-family:Archivo,Arial,sans-serif}
+header{background:var(--road);color:#fff;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.logo{font:850 1.3rem Archivo;font-stretch:115%;color:#fff;text-decoration:none}.logo b{color:var(--sign)}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 18px}
+.box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;animation:up .45s both}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+label{display:block;font-weight:600;font-size:.88rem;margin:11px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:10px 11px;border:1.5px solid var(--line);border-radius:6px;background:#fff}
+.btn{border:0;cursor:pointer;font:600 .95rem Hind;padding:11px 20px;border-radius:6px;background:var(--sign);color:var(--road);transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}.btn.dark{background:var(--road);color:#fff}.btn.sm{padding:7px 12px;font-size:.85rem}
+.btn.link{background:none;color:#fff;text-decoration:underline;padding:0}
+.hide{display:none!important}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.auth{max-width:430px;margin:30px auto}
+.sw{display:flex;gap:6px;margin-bottom:8px}.sw button{flex:1}
+.msg{min-height:1.3em;font-size:.88rem;margin-top:10px;color:#b3261e}.msg.ok{color:#1f7a4d}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start}
+.bk{border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px;background:#fff;animation:up .4s both}
+.bk h3{font-size:1.02rem}.bk small{color:var(--mute)}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.78rem;font-weight:600;background:#eee}
+.s-pending{background:#fff1c2}.s-confirmed{background:#d6e9ff}.s-in_transit{background:#e3d9ff}.s-delivered{background:#d3f2df}.s-cancelled{background:#f6d6d3}
+.bar{height:6px;background:#e6e9ec;border-radius:6px;margin:12px 0 4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sign);width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;cursor:pointer;text-align:center;transition:.2s}
+.stat:hover,.stat.on{border-color:var(--sign);box-shadow:0 0 0 2px var(--sign)}
+.stat b{display:block;font:850 1.9rem Archivo}
+.arow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.tools{display:flex;gap:10px;margin-bottom:14px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--road);color:#fff;padding:10px 20px;border-radius:30px;opacity:0;transition:.3s;pointer-events:none}
+.toast.on{opacity:1}
+@media(max-width:820px){.grid,.r2,.arow{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><a class="logo" href="index.html">LOGI<b>NOVA</b></a><div><span id="who"></span> <button class="btn link hide" id="out">Log out</button></div></header>
+<div class="wrap">
+
+<div id="auth" class="box auth">
+ <div class="sw"><button class="btn" id="tLogin">Login</button><button class="btn dark" id="tSign">Create account</button></div>
+ <form id="af" novalidate>
+  <div id="sf" class="hide"><label for="an">Full name</label><input id="an"><label for="ap">Phone</label><input id="ap" inputmode="tel"></div>
+  <label for="ae">Email</label><input id="ae" type="email" autocomplete="email">
+  <label for="aw">Password (min 6 characters)</label><input id="aw" type="password" autocomplete="current-password">
+  <div class="msg" id="am" role="alert"></div>
+  <button class="btn" id="ab" style="width:100%;margin-top:6px">Login</button>
+ </form>
+</div>
+
+<div id="cust" class="grid hide">
+ <form class="box" id="bf" novalidate>
+  <h2>Book a truck</h2>
+  <label for="b1">Pickup location</label><input id="b1">
+  <label for="b2">Delivery location</label><input id="b2">
+  <label for="b3">Cargo</label><input id="b3" placeholder="e.g. Cotton bales">
+  <div class="r2"><div><label for="b4">Weight (tonnes)</label><input id="b4" inputmode="decimal"></div>
+  <div><label for="b6">Pickup date</label><input id="b6" type="date"></div></div>
+  <label for="b5">Truck type</label>
+  <select id="b5"><option>Mini truck</option><option>Pickup 8 ft</option><option selected>14 ft truck</option><option>20 ft truck</option><option>32 ft container</option></select>
+  <div class="msg" id="bm" role="alert"></div>
+  <button class="btn" style="width:100%">Send booking request</button>
+ </form>
+ <div><h2 style="margin-bottom:14px">My bookings</h2><div id="mine"></div></div>
+</div>
+
+<div id="adm" class="hide">
+ <h2 style="margin-bottom:14px">Admin panel</h2>
+ <div class="stats" id="st"></div>
+ <div class="tools"><input id="q" placeholder="Search name, phone, city, cargo"><button class="btn dark" id="rf">Refresh</button></div>
+ <div id="all"></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====== EDIT THESE (from Supabase: Project Settings > API) ====== */
+const CFG={url:"YOUR_SUPABASE_URL",key:"YOUR_SUPABASE_ANON_KEY"};
+/* ================================================================ */
+const READY=/^https?:\/\//.test(CFG.url)&&!CFG.key.startsWith("YOUR_")&&!!window.supabase;
+const sb=READY?supabase.createClient(CFG.url,CFG.key):null;
+const SETUP_MSG="Setup incomplete: add your Supabase URL and anon key in the CFG section of app.html (see setup steps).";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ST=["pending","confirmed","in_transit","delivered","cancelled"];
+const LB={pending:"Pending",confirmed:"Confirmed",in_transit:"In transit",delivered:"Delivered",cancelled:"Cancelled"};
+const PCT={pending:12,confirmed:42,in_transit:72,delivered:100,cancelled:0};
+let me=null,prof=null,all=[],flt="all",mode="login";
+function toast(t){$("toast").textContent=t;$("toast").classList.add("on");setTimeout(()=>$("toast").classList.remove("on"),2600)}
+function view(v){["auth","cust","adm"].forEach(x=>$(x).classList.toggle("hide",x!==v));$("out").classList.toggle("hide",v==="auth")}
+async function boot(){
+ if(!sb){view("auth");$("am").textContent=SETUP_MSG;return}
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session){$("who").textContent="";return view("auth")}
+ me=session.user;
+ const {data,error}=await sb.from("profiles").select("*").eq("id",me.id).single();
+ if(error||!data){toast("Could not load your profile. Check the setup.");return view("auth")}
+ prof=data;$("who").textContent=(prof.name||prof.email)+(prof.role==="admin"?" (admin)":"");
+ if(prof.role==="admin"){view("adm");loadAll()}else{view("cust");loadMine()}
+}
+/* auth */
+function setMode(m){mode=m;$("sf").classList.toggle("hide",m==="login");$("ab").textContent=m==="login"?"Login":"Create account";
+ $("tLogin").className="btn"+(m==="login"?"":" dark");$("tSign").className="btn"+(m==="sign"?"":" dark");$("am").textContent=""}
+$("tLogin").onclick=()=>setMode("login");$("tSign").onclick=()=>setMode("sign");
+$("af").addEventListener("submit",async e=>{e.preventDefault();const m=$("am");m.className="msg";
+ if(!sb){m.textContent=SETUP_MSG;return}
+ const em=$("ae").value.trim(),pw=$("aw").value;
+ if(!em||pw.length<6){m.textContent="Enter your email and a password of at least 6 characters.";return}
+ if(mode==="sign"){
+  if(!$("an").value.trim()||$("ap").value.replace(/\D/g,"").length<10){m.textContent="Enter your name and a 10 digit phone number.";return}
+  const {data,error}=await sb.auth.signUp({email:em,password:pw,options:{data:{name:$("an").value.trim(),phone:$("ap").value.trim()}}});
+  if(error){m.textContent=error.message;return}
+  if(!data.session){m.className="msg ok";m.textContent="Account created. Check your email to confirm, then login.";return}
+ }else{
+  const {error}=await sb.auth.signInWithPassword({email:em,password:pw});
+  if(error){m.textContent=error.message;return}
+ }
+ boot()});
+$("out").onclick=async()=>{await sb.auth.signOut();boot()};
+/* customer */
+function card(b,admin){
+ const bar=b.status==="cancelled"?"":`<div class="bar"><i data-w="${PCT[b.status]}"></i></div>`;
+ return `<div class="bk"><div style="display:flex;justify-content:space-between;gap:8px"><h3>${esc(b.pickup)} to ${esc(b.drop_loc)}</h3><span class="badge s-${b.status}">${LB[b.status]}</span></div>
+ <small>#${b.id} · ${esc(b.cargo)}${b.weight?" · "+esc(b.weight)+" t":""} · ${esc(b.truck)}${b.pickup_date?" · pickup "+esc(b.pickup_date):""}</small>${bar}`}
+async function loadMine(){
+ const {data,error}=await sb.from("bookings").select("*").order("created_at",{ascending:false});
+ if(error)return toast(error.message);
+ $("mine").innerHTML=data.length?data.map(b=>card(b)+
+  `${b.price?`<p><b>Quoted price: ₹${Number(b.price).toLocaleString("en-IN")}</b></p>`:""}
+   ${b.vehicle_no?`<p>Vehicle: ${esc(b.vehicle_no)}</p>`:""}${b.admin_note?`<p><small>Note from LogiNova: ${esc(b.admin_note)}</small></p>`:""}
+   ${b.status==="pending"?`<button class="btn dark sm" data-cancel="${b.id}" style="margin-top:8px">Cancel booking</button>`:""}</div>`).join(""):"<p>No bookings yet. Fill the form to book your first truck.</p>";
+ grow()}
+function grow(){requestAnimationFrame(()=>setTimeout(()=>document.querySelectorAll(".bar i").forEach(i=>i.style.width=i.dataset.w+"%"),80))}
+$("bf").addEventListener("submit",async e=>{e.preventDefault();const m=$("bm");m.className="msg";
+ if(!$("b1").value.trim()||!$("b2").value.trim()||!$("b3").value.trim()){m.textContent="Pickup, delivery and cargo are required.";return}
+ const {error}=await sb.from("bookings").insert({pickup:$("b1").value.trim(),drop_loc:$("b2").value.trim(),cargo:$("b3").value.trim(),weight:$("b4").value.trim()||null,truck:$("b5").value,pickup_date:$("b6").value||null});
+ if(error){m.textContent=error.message;return}
+ e.target.reset();m.textContent="";toast("Booking sent. We will confirm shortly.");loadMine()});
+$("mine").addEventListener("click",async e=>{const id=e.target.dataset.cancel;if(!id||!confirm("Cancel this booking?"))return;
+ const {error}=await sb.from("bookings").update({status:"cancelled"}).eq("id",id);error?toast(error.message):(toast("Booking cancelled"),loadMine())});
+/* admin */
+async function loadAll(){
+ const {data,error}=await sb.from("bookings").select("*,profiles(name,phone,email)").order("created_at",{ascending:false});
+ if(error)return toast(error.message);all=data;renderAdmin()}
+function renderAdmin(){
+ const cnt=s=>all.filter(b=>s==="all"||b.status===s).length;
+ $("st").innerHTML=["all",...ST].map(s=>`<div class="stat ${flt===s?"on":""}" data-f="${s}"><b>${cnt(s)}</b>${s==="all"?"All":LB[s]}</div>`).join("");
+ const q=$("q").value.toLowerCase();
+ const rows=all.filter(b=>(flt==="all"||b.status===flt)&&JSON.stringify(b).toLowerCase().includes(q));
+ $("all").innerHTML=rows.length?rows.map(b=>{const p=b.profiles||{},ph=(p.phone||"").replace(/\D/g,"");
+  return card(b)+`<p style="margin-top:6px"><b>${esc(p.name)}</b> · ${esc(p.phone)} · ${esc(p.email)}
+  ${ph?` · <a href="https://wa.me/${ph.length===10?"91"+ph:ph}" target="_blank" rel="noopener">WhatsApp</a>`:""}</p>
+  <div class="arow" data-id="${b.id}">
+   <div><label>Status</label><select class="f-s">${ST.map(s=>`<option value="${s}" ${s===b.status?"selected":""}>${LB[s]}</option>`).join("")}</select></div>
+   <div><label>Price (₹)</label><input class="f-p" type="number" min="0" value="${b.price??""}"></div>
+   <div><label>Vehicle no.</label><input class="f-v" value="${esc(b.vehicle_no)}"></div>
+   <div><label>Note to customer</label><input class="f-n" value="${esc(b.admin_note)}"></div>
+  </div><div style="margin-top:10px"><button class="btn sm" data-save="${b.id}">Save changes</button> <button class="btn dark sm" data-del="${b.id}">Delete</button></div></div>`}).join(""):"<p>No bookings match.</p>";
+ grow()}
+$("st").addEventListener("click",e=>{const s=e.target.closest("[data-f]");if(s){flt=s.dataset.f;renderAdmin()}});
+$("q").addEventListener("input",renderAdmin);$("rf").onclick=()=>{loadAll();toast("Refreshed")};
+$("all").addEventListener("click",async e=>{const sv=e.target.dataset.save,dl=e.target.dataset.del;
+ if(sv){const r=e.target.closest(".bk").querySelector(".arow"),pr=r.querySelector(".f-p").value;
+  const {error}=await sb.from("bookings").update({status:r.querySelector(".f-s").value,price:pr===""?null:Number(pr),vehicle_no:r.querySelector(".f-v").value.trim()||null,admin_note:r.querySelector(".f-n").value.trim()||null}).eq("id",sv);
+  error?toast(error.message):(toast("Saved"),loadAll())}
+ if(dl&&confirm("Delete this booking permanently?")){const {error}=await sb.from("bookings").delete().eq("id",dl);error?toast(error.message):(toast("Deleted"),loadAll())}});
+boot();
+</script>
+</body>
+</html>
